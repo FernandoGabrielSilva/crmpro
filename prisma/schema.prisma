@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALES_REP
+}
+
+enum DealStage {
+  LEAD
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+  NOTE
+  TASK
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum CustomerStatus {
+  LEAD
+  ACTIVE
+  INACTIVE
+}
+
+enum TrashEntityType {
+  CUSTOMER
+  DEAL
+  TASK
+  CONTACT
+  ACTIVITY
+  TAG
+  USER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(SALES_REP)
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  customers Customer[] @relation("CustomerOwner")
+  deals     Deal[]     @relation("DealOwner")
+  activities Activity[]
+  tasks     Task[]     @relation("TaskAssignee")
+  deletedTrashItems TrashItem[] @relation("TrashDeletedBy")
+
+  @@map("users")
+}
+
+model Customer {
+  id        String         @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  position  String?
+  status    CustomerStatus @default(LEAD)
+  ownerId   String?
+  tags      String[]       @default([])
+  notes     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  owner      User?        @relation("CustomerOwner", fields: [ownerId], references: [id])
+  contacts   Contact[]
+  deals      Deal[]
+  activities Activity[]
+
+  @@map("customers")
+}
+
+model Contact {
+  id         String  @id @default(cuid())
+  customerId String
+  name       String
+  email      String?
+  phone      String?
+  position   String?
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+model Pipeline {
+  id     String   @id @default(cuid())
+  name   String
+  stages String[]
+
+  @@map("pipelines")
+}
+
+model Deal {
+  id                 String    @id @default(cuid())
+  title              String
+  value              Int       @default(0)
+  currency           String    @default("BRL")
+  stage              DealStage @default(LEAD)
+  probability        Int       @default(10)
+  customerId         String
+  ownerId            String?
+  expectedCloseDate  DateTime?
+  description        String?
+  lostReason         String?
+  order              Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  customer   Customer     @relation(fields: [customerId], references: [id])
+  owner      User?        @relation("DealOwner", fields: [ownerId], references: [id])
+  activities Activity[]
+
+  @@map("deals")
+}
+
+model Activity {
+  id         String       @id @default(cuid())
+  type       ActivityType
+  content    String
+  customerId String?
+  dealId     String?
+  userId     String
+  dueDate    DateTime?
+  completed  Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  deal     Deal?     @relation(fields: [dealId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+
+  @@map("activities")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#6366f1")
+  createdAt DateTime @default(now())
+
+  @@map("tags")
+}
+
+model TrashItem {
+  id          String          @id @default(cuid())
+  entityType  TrashEntityType
+  entityId    String
+  label       String
+  data        Json
+  deletedById String?
+  deletedAt   DateTime        @default(now())
+
+  deletedBy User? @relation("TrashDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+
+  @@index([deletedAt])
+  @@map("trash_items")
+}
+
+model TrashSetting {
+  id            String   @id @default("default")
+  retentionDays Int      @default(30)
+  updatedAt     DateTime @updatedAt
+
+  @@map("trash_settings")
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(PENDING)
+  assignedTo  String?
+  relatedTo   String?
+  createdAt   DateTime     @default(now())
+
+  assignee User? @relation("TaskAssignee", fields: [assignedTo], references: [id])
+
+  @@map("tasks")
+}
