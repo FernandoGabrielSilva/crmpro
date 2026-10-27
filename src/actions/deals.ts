@@ -27,6 +27,7 @@ export async function createDeal(input: unknown): Promise<ActionResult> {
     const parsed = dealSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
     const data = parsed.data;
+    const canAssign = user.role === 'ADMIN' || user.role === 'MANAGER';
     const last = await prisma.deal.findFirst({
       where: { stage: data.stage },
       orderBy: { order: 'desc' },
@@ -40,7 +41,7 @@ export async function createDeal(input: unknown): Promise<ActionResult> {
         stage: data.stage,
         probability: data.probability,
         customerId: data.customerId,
-        ownerId: data.ownerId || user.id,
+        ownerId: canAssign ? (data.ownerId || user.id) : user.id,
         expectedCloseDate: data.expectedCloseDate,
         description: data.description,
         order: (last?.order ?? -1) + 1,
@@ -55,10 +56,16 @@ export async function createDeal(input: unknown): Promise<ActionResult> {
 
 export async function updateDeal(id: string, input: unknown): Promise<ActionResult> {
   try {
-    await requireUser();
+    const user = await requireUser();
     const parsed = dealSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
     const data = parsed.data;
+    const canAssign = user.role === 'ADMIN' || user.role === 'MANAGER';
+    const existing = await prisma.deal.findUnique({ where: { id }, select: { ownerId: true } });
+    if (!existing) return { error: 'Negócio não encontrado' };
+    if (user.role === 'SALES_REP' && existing.ownerId && existing.ownerId !== user.id) {
+      return { error: 'Sem permissão' };
+    }
     await prisma.deal.update({
       where: { id },
       data: {
@@ -68,7 +75,7 @@ export async function updateDeal(id: string, input: unknown): Promise<ActionResu
         stage: data.stage,
         probability: data.probability,
         customerId: data.customerId,
-        ownerId: data.ownerId || null,
+        ownerId: canAssign ? (data.ownerId || null) : existing.ownerId,
         expectedCloseDate: data.expectedCloseDate,
         description: data.description,
         lostReason: data.lostReason,

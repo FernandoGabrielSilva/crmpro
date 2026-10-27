@@ -19,6 +19,7 @@ import { SelectField } from '@/components/shared/select-field';
 import { createDeal, updateDeal } from '@/actions/deals';
 import { DEAL_STAGES } from '@/lib/crm';
 import { formatCurrency } from '@/lib/format';
+import { formatCurrencyInput, parseCurrencyToNumber } from '@/lib/utils';
 import type { DealRow, UserOption } from '@/types/crm';
 
 type CustomerOption = { id: string; name: string };
@@ -52,7 +53,7 @@ export function DealFormDialog({ open, onOpenChange, deal, customers, users, def
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         title: deal.title,
-        value: String(deal.value),
+        value: deal.value ? formatCurrencyInput(String(Math.round(deal.value * 100))) : '',
         stage: deal.stage,
         probability: String(deal.probability),
         customerId: deal.customerId,
@@ -66,7 +67,7 @@ export function DealFormDialog({ open, onOpenChange, deal, customers, users, def
       const preset = DEAL_STAGES.find((s) => s.value === stage);
       setForm({
         title: '',
-        value: '0',
+        value: '',
         stage,
         probability: String(preset?.probability ?? 10),
         customerId: customers[0]?.id ?? '',
@@ -93,7 +94,7 @@ export function DealFormDialog({ open, onOpenChange, deal, customers, users, def
     startTransition(async () => {
       const payload = {
         title: form.title,
-        value: Number(form.value) || 0,
+        value: parseCurrencyToNumber(form.value),
         currency: 'BRL',
         stage: form.stage,
         probability: Number(form.probability) || 0,
@@ -132,7 +133,7 @@ export function DealFormDialog({ open, onOpenChange, deal, customers, users, def
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="value">Valor (R$)</Label>
-              <Input id="value" type="number" min="0" step="100" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
+              <Input id="value" inputMode="numeric" value={form.value} placeholder="R$ 0,00" onChange={(e) => setForm({ ...form, value: formatCurrencyInput(e.target.value) })} onBlur={() => { if (form.value) setForm((prev) => ({ ...prev, value: formatCurrencyInput(prev.value) })); }} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="probability">Probabilidade (%)</Label>

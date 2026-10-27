@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { AppHeader } from '@/components/layout/app-header';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getUserById } from '@/lib/cache';
 import { canManage } from '@/lib/permissions';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const user = await getUserById(session.user.id);
   if (!user) redirect('/login');
 
   return (

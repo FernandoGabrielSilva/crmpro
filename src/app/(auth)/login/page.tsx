@@ -48,7 +48,7 @@ export default function LoginPage() {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? 'Entrando…' : 'Entrar'}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm text-muted-foreground">

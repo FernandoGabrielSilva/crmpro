@@ -22,6 +22,7 @@ export async function createCustomer(input: unknown): Promise<ActionResult> {
     const parsed = customerSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
     const data = parsed.data;
+    const canAssign = user.role === 'ADMIN' || user.role === 'MANAGER';
     await prisma.customer.create({
       data: {
         name: data.name,
@@ -30,7 +31,7 @@ export async function createCustomer(input: unknown): Promise<ActionResult> {
         company: data.company,
         position: data.position,
         status: data.status,
-        ownerId: data.ownerId || user.id,
+        ownerId: canAssign ? (data.ownerId || user.id) : user.id,
         tags: data.tags,
         notes: data.notes,
       },
@@ -44,10 +45,16 @@ export async function createCustomer(input: unknown): Promise<ActionResult> {
 
 export async function updateCustomer(id: string, input: unknown): Promise<ActionResult> {
   try {
-    await requireUser();
+    const user = await requireUser();
     const parsed = customerSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
     const data = parsed.data;
+    const canAssign = user.role === 'ADMIN' || user.role === 'MANAGER';
+    const existing = await prisma.customer.findUnique({ where: { id }, select: { ownerId: true } });
+    if (!existing) return { error: 'Cliente não encontrado' };
+    if (user.role === 'SALES_REP' && existing.ownerId && existing.ownerId !== user.id) {
+      return { error: 'Sem permissão' };
+    }
     await prisma.customer.update({
       where: { id },
       data: {
@@ -57,7 +64,7 @@ export async function updateCustomer(id: string, input: unknown): Promise<Action
         company: data.company,
         position: data.position,
         status: data.status,
-        ownerId: data.ownerId || null,
+        ownerId: canAssign ? (data.ownerId || null) : existing.ownerId,
         tags: data.tags,
         notes: data.notes,
       },

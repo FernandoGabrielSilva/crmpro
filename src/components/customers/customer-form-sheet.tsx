@@ -19,7 +19,7 @@ import {
 import { SelectField } from '@/components/shared/select-field';
 import { createCustomer, updateCustomer } from '@/actions/customers';
 import { CUSTOMER_STATUSES } from '@/lib/crm';
-import { cn } from '@/lib/utils';
+import { cn, formatPhone } from '@/lib/utils';
 import type { CustomerRow, TagOption, UserOption } from '@/types/crm';
 
 type Props = {
@@ -114,7 +114,7 @@ export function CustomerFormSheet({ open, onOpenChange, customer, users, tags }:
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone</Label>
-              <Input id="phone" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+              <Input id="phone" value={form.phone} onChange={(e) => set('phone', formatPhone(e.target.value))} onKeyDown={(e) => { if (/\d/.test(e.key) && form.phone.replace(/\D/g, '').length >= 11) e.preventDefault(); }} inputMode="tel" maxLength={15} placeholder="(11) 99999-9999" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="company">Empresa</Label>

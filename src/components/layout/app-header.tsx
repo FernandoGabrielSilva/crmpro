@@ -61,18 +61,19 @@ export function AppHeader({ user }: { user: { name: string; email: string; role:
           <div className="flex items-center gap-1.5">
             <button
               type="button"
+              aria-label="Buscar"
               onClick={() => setPaletteOpen(true)}
               className="flex h-8 items-center gap-2 rounded-md border bg-background px-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
             >
-              <Search className="size-3.5" />
-              <span className="hidden sm:inline">Buscar...</span>
+              <Search className="size-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Buscar…</span>
               <kbd className="hidden items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium sm:flex">
                 ⌘K
               </kbd>
             </button>
             <ThemeToggle />
             <DropdownMenu>
-              <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
                 <Avatar size="sm">
                   {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.name} />}
                   <AvatarFallback>{initials(user.name)}</AvatarFallback>

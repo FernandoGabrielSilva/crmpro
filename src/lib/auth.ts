@@ -5,6 +5,7 @@ import type { Adapter } from 'next-auth/adapters';
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { rateLimit } from './rate-limit';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -19,10 +20,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   providers: [
     Credentials({
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
         const { email, password } = parsed.data;
+        const ip = (req?.headers as any)?.get?.('x-forwarded-for')?.split(',')[0]?.trim() || (req?.headers as any)?.get?.('x-real-ip') || 'unknown';
+        const rl = rateLimit(`login:${ip}:${email.toLowerCase()}`, 5, 60_000);
+        if (!rl.ok) return null;
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;
         const isValid = await bcrypt.compare(password, user.password);

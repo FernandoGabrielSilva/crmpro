@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/shared/empty-state';
 import { createContact, deleteContact } from '@/actions/customers';
+import { formatPhone } from '@/lib/utils';
 
 type Contact = {
   id: string;
@@ -95,7 +96,7 @@ export function ContactsSection({ customerId, contacts }: { customerId: string; 
             </div>
             <div className="space-y-2">
               <Label>Telefone</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })} onKeyDown={(e) => { if (/\d/.test(e.key) && form.phone.replace(/\D/g, '').length >= 11) e.preventDefault(); }} inputMode="tel" maxLength={15} placeholder="(11) 99999-9999" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
